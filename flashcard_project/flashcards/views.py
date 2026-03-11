@@ -20,18 +20,15 @@ def category_detail(request, pk):
     })
     
 # Создание новой колоды
-def  category_create(request, category_id): 
-    category = get_object_or_404(Category, pk=category_id)
+def category_create(request):
     if request.method == 'POST':
-        form = EntryForm(request.POST)
+        form = CategoryForm(request.POST)
         if form.is_valid():
-            entry = form.save(commit=False)
-            entry.category = category
-            entry.save()
-            return redirect('category_detail', pk=category.id)
+            category = form.save()
+            return redirect('category_detail', pk=category.pk)  # ✅ здесь category существует
     else:
-        form = EntryForm()
-    return render(request, 'flashcards/entry_form.html', {'form': form, 'category': category})
+        form = CategoryForm()
+    return render(request, 'flashcards/category_form.html', {'form': form, 'title': 'Новая категория'})
 
 # Редактирование колоды
 def category_update(request, pk):
