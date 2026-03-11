@@ -1,12 +1,12 @@
 from django import forms
-from .models import Deck, Card
+from .models import Category, Entry
 
-class DeckForm(forms.ModelForm):
+class CategoryForm(forms.ModelForm):
     class Meta:
-        model = Deck
+        model = Category
         fields = ['name', 'description']
 
-class CardForm(forms.ModelForm):
+class EntryForm(forms.ModelForm):
     class Meta:
-        model = Card
+        model = Entry
         fields = ['term', 'definition']

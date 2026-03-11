@@ -2,116 +2,123 @@ from django.shortcuts import render
 
 # Create your views here.
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Deck, Card
-from .forms import DeckForm, CardForm
+from .models import Category, Entry
+from .forms import CategoryForm, EntryForm
 
 #список колод - главная страница
-def deck_list(request):
-    decks = Deck.objects.all().order_by('-created_at')  # сортировка: новые сверху
-    return render(request, 'flashcards/deck_list.html', {'decks': decks})
+def category_list(request):
+    categories = Category.objects.all().order_by('-created_at')  # новые сверху
+    return render(request, 'flashcards/category_list.html', {'categories': categories})
 
 #Просмотр колоды
-def deck_detail(request, pk):
-    deck = get_object_or_404(Deck, pk=pk)
-    cards = deck.cards.all()  
-    return render(request, 'flashcards/deck_detail.html', {'deck': deck, 'cards': cards})
-
+def category_detail(request, pk):
+    category = get_object_or_404(Category, pk=pk)
+    entries = category.entries.all()  # thanks to related_name='entries'
+    return render(request, 'flashcards/category_detail.html', {
+        'category': category,
+        'entries': entries
+    })
+    
 # Создание новой колоды
-def deck_create(request):
+def  category_create(request, category_id): 
+    category = get_object_or_404(Category, pk=category_id)
     if request.method == 'POST':
-        form = DeckForm(request.POST)
+        form = EntryForm(request.POST)
         if form.is_valid():
-            deck = form.save()
-            return redirect('deck_detail', pk=deck.pk)
+            entry = form.save(commit=False)
+            entry.category = category
+            entry.save()
+            return redirect('category_detail', pk=category.id)
     else:
-        form = DeckForm()
-    return render(request, 'flashcards/deck_form.html', {'form': form, 'title': 'Новая колода'})
+        form = EntryForm()
+    return render(request, 'flashcards/entry_form.html', {'form': form, 'category': category})
 
 # Редактирование колоды
-def deck_update(request, pk):
-    deck = get_object_or_404(Deck, pk=pk)
+def category_update(request, pk):
+    category = get_object_or_404(Category, pk=pk)
     if request.method == 'POST':
-        form = DeckForm(request.POST, instance=deck)
+        form = CategoryForm(request.POST, instance=category)
         if form.is_valid():
-            deck = form.save()
-            return redirect('deck_detail', pk=deck.pk)
+            category = form.save()
+            return redirect('category_detail', pk=category.pk)
     else:
-        form = DeckForm(instance=deck)
-    return render(request, 'flashcards/deck_form.html', {'form': form, 'title': 'Редактировать колоду'})
+        form = CategoryForm(instance=category)
+    return render(request, 'flashcards/category_form.html', {'form': form, 'title': 'Редактировать категорию'})
 
-# Удвление колоды
-def deck_delete(request, pk):
-    deck = get_object_or_404(Deck, pk=pk)
-    if request.method == 'POST':
-        deck.delete()
-        return redirect('deck_list')
-    return render(request, 'flashcards/deck_confirm_delete.html', {'deck': deck})
+# Удaление колоды
+def category_delete(request, pk):
+   category = get_object_or_404(Category, pk=pk)
+   if request.method == 'POST':
+        category.delete()
+        return redirect('category_list')
+   return render(request, 'flashcards/category_confirm_delete.html', {'category': category})
 
 # Создание новой карточки в колоде
-def card_create(request, deck_id):
-    deck = get_object_or_404(Deck, pk=deck_id)
+def entry_create(request, category_id):
+    category = get_object_or_404(Category, pk=category_id)
     if request.method == 'POST':
-        form = CardForm(request.POST)
+        form = EntryForm(request.POST)
         if form.is_valid():
-            card = form.save(commit=False)
-            card.deck = deck
-            card.save()
-            return redirect('deck_detail', pk=deck.id)
+            entry = form.save(commit=False)
+            entry.category = category
+            entry.save()
+            return redirect('category_detail', pk=category.id)
     else:
-        form = CardForm()
-    return render(request, 'flashcards/card_form.html', {'form': form, 'deck': deck})
-
+        form = EntryForm()
+    return render(request, 'flashcards/entry_form.html', {'form': form, 'category': category})
+ 
 # Редактирование карточки
 
-def card_update(request, pk):
-    card = get_object_or_404(Card, pk=pk)
+def entry_update(request, pk):
+    entry = get_object_or_404(Entry, pk=pk)
     if request.method == 'POST':
-        form = CardForm(request.POST, instance=card)
+        form = EntryForm(request.POST, instance=entry)
         if form.is_valid():
-            card = form.save()
-            return redirect('deck_detail', pk=card.deck.id)
+            entry = form.save()
+            return redirect('category_detail', pk=entry.category.id)
     else:
-        form = CardForm(instance=card)
-    return render(request, 'flashcards/card_form.html', {'form': form, 'deck': card.deck})
+        form = EntryForm(instance=entry)
+    return render(request, 'flashcards/entry_form.html', {'form': form, 'category': entry.category})
 
 # Удаление карточки
 
-def card_delete(request, pk):
-    card = get_object_or_404(Card, pk=pk)
-    deck_id = card.deck.id
+def entry_delete(request, pk):
+    entry = get_object_or_404(Entry, pk=pk)
+    category_id = entry.category.id
     if request.method == 'POST':
-        card.delete()
-        return redirect('deck_detail', pk=deck_id)
-    return render(request, 'flashcards/card_confirm_delete.html', {'card': card})
+        entry.delete()
+        return redirect('category_detail', pk=category_id)
+    return render(request, 'flashcards/entry_confirm_delete.html', {'entry': entry})
 
 # перелистывание карточек
-from django.shortcuts import render, get_object_or_404
-from .models import Deck  # предполагается, что модель Deck определена в models.py
+from django.shortcuts import render, get_object_or_404 
 
-def study(request, deck_id):
-    deck = get_object_or_404(Deck, pk=deck_id)
-    cards = list(deck.cards.all())  # все карточки колоды в виде списка
+def study(request, category_id):
+    
+    category = get_object_or_404(Category, pk=category_id)
+    entries = list(category.entries.all())  # все записи категории в виде списка
 
     try:
         current_index = int(request.GET.get('index', 0))
     except ValueError:
         current_index = 0
 
+    # Корректировка индекса
     if current_index < 0:
         current_index = 0
-    if cards and current_index >= len(cards):
-        current_index = len(cards) - 1
+    if entries and current_index >= len(entries):
+        current_index = len(entries) - 1
 
     show_definition = request.GET.get('show', 'false') == 'true'
 
-    current_card = cards[current_index] if cards else None
+    current_entry = entries[current_index] if entries else None
 
     context = {
-        'deck': deck,
-        'cards': cards,
+        'category': category,
+        'entries': entries,
         'current_index': current_index,
-        'current_card': current_card,
+        'current_entry': current_entry,
         'show_definition': show_definition,
-        'total': len(cards),
+        'total': len(entries),
     }
-    return render(request, 'flashcards/study_pure.html', context)
+    return render(request, 'flashcards/study.html', context)
